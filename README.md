@@ -1,1 +1,1 @@
-Que dor de cabeÃ§a bixo.
+Que dor de cabeça bixo.
