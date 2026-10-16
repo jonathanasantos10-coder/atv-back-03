@@ -1,38 +1,19 @@
-using System.ComponentModel.DataAnnotations;
-
-namespace AplicacaoBackEnd.DTO;
-
-public class ProdutoDTO
+namespace AplicacaoBackEnd.DTO
 {
-    // Dados da tabela item.
-    [Range(1, int.MaxValue)]
-    public int IdCategoria { get; set; }
+    public class ProdutoDTO
+    {
+        //DADOS TABELA ITEM
+        public int IdCategoria { get; set; }
+        public string? Item { get; set; }
+        public string? DescricaoItem { get; set; }
+        public decimal? Preco { get; set; }
+        public string? TipoItem { get; set; }
+        public string? AtivoProdutoServico { get; set; }
 
-    [Required, StringLength(40)]
-    public string Item { get; set; } = string.Empty;
+        //DADOS TABELA PRODUTO
+        public int CodigoPreco { get; set; }
+        public decimal PrecoVenda { get; set; }
+        public string? Unidade { get; set; }
 
-    [StringLength(200)]
-    public string? DescricaoItem { get; set; }
-
-    [Range(typeof(decimal), "0", "99999999.99",
-        ParseLimitsInInvariantCulture = true,
-        ConvertValueInInvariantCulture = true)]
-    public decimal Preco { get; set; }
-
-    [Required, RegularExpression("^P$", ErrorMessage = "O tipo do produto deve ser P.")]
-    public string TipoItem { get; set; } = "P";
-
-    [Required, RegularExpression("^[SN]$", ErrorMessage = "Informe S ou N para o estado do produto.")]
-    public string AtivoProdutoServico { get; set; } = "S";
-
-    // Dados da tabela produto.
-    public int CodigoPreco { get; set; }
-
-    [Range(typeof(decimal), "0", "99999999.99",
-        ParseLimitsInInvariantCulture = true,
-        ConvertValueInInvariantCulture = true)]
-    public decimal PrecoVenda { get; set; }
-
-    [Required, StringLength(10)]
-    public string Unidade { get; set; } = string.Empty;
+    }
 }

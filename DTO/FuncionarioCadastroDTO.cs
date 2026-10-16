@@ -1,13 +1,8 @@
-using System.ComponentModel.DataAnnotations;
-
-namespace AplicacaoBackEnd.DTO;
-
-// Reaproveita os dados pessoais, os endereços e suas validações.
-public class FuncionarioCadastroDTO : PessoaEnderecoDTO
+namespace AplicacaoBackAula.DTO
 {
-    [Required, StringLength(20)]
-    public string Cargo { get; set; } = string.Empty;
-
-    [Required]
-    public DateOnly? DataAdmissao { get; set; }
+    public class FuncionarioCadastroDTO : PessoaEnderecoDTO
+    {
+        public string? Cargo { get; set; }
+        public DateOnly DataAdmissao { get; set; }
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AplicacaoBackEnd.Models;
 
@@ -11,6 +12,7 @@ public partial class Atendimentoitem
 
     public int Idfuncionario { get; set; }
 
+    [Column("quantidade_itens")]
     public int QuantidadeItem { get; set; }
 
     public decimal? ValorunitarioEntrada { get; set; }

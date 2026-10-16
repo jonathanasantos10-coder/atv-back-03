@@ -5,13 +5,13 @@ using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
 
 namespace AplicacaoBackEnd.Models;
 
-public partial class DbAtendimentoContext : DbContext
+public partial class BdAulaBackendContext : DbContext
 {
-    public DbAtendimentoContext()
+    public BdAulaBackendContext()
     {
     }
 
-    public DbAtendimentoContext(DbContextOptions<DbAtendimentoContext> options)
+    public BdAulaBackendContext(DbContextOptions<BdAulaBackendContext> options)
         : base(options)
     {
     }
@@ -106,7 +106,7 @@ public partial class DbAtendimentoContext : DbContext
                 .HasColumnName("idfuncionario");
             entity.Property(e => e.QuantidadeItem)
                 .HasColumnType("int(11)")
-                .HasColumnName("quantidade_item");
+                .HasColumnName("quantidade_itens");
             entity.Property(e => e.ValorunitarioEntrada)
                 .HasPrecision(10, 2)
                 .HasColumnName("valorunitario_entrada");

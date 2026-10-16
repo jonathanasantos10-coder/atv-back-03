@@ -1,26 +1,29 @@
+
 using AplicacaoBackEnd.Models;
 using Microsoft.EntityFrameworkCore;
-using AplicacaoBackEnd.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilter>());
-builder.Services.AddScoped<PessoaService>();
-builder.Services.AddScoped<EstoqueService>();
-builder.Services.AddScoped<AtendimentoService>();
-builder.Services.AddScoped<ItemService>();
+builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<DbAtendimentoContext>(options =>
+builder.Services.AddDbContext<BdAulaBackendContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("connection"),
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("connection"))
     )
 );
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler =
+            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 var app = builder.Build();
 app.UseCors(o => o.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

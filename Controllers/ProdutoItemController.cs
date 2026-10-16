@@ -1,66 +1,246 @@
+﻿using AplicacaoBackEnd.Models;
 using AplicacaoBackEnd.DTO;
-using AplicacaoBackEnd.Models;
-using AplicacaoBackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 
-namespace AplicacaoBackEnd.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class ProdutoItemController : ControllerBase
+namespace AplicacaoBackAula.Controllers
 {
-    private readonly DbAtendimentoContext _context;
-    private readonly ItemService _itens;
-    public ProdutoItemController(DbAtendimentoContext context, ItemService itens) { _context = context; _itens = itens; }
-
-    private static ItemDTO Converter(ProdutoDTO dados) => new()
+    // Controller para cadastrar produtos. O produto usa duas tabelas: item e produto.
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProdutoItemController : ControllerBase
     {
-        IdCategoria = dados.IdCategoria, Item = dados.Item, DescricaoItem = dados.DescricaoItem,
-        Preco = dados.Preco, TipoItem = "P", AtivoProdutoServico = dados.AtivoProdutoServico,
-        Produto = new ProdutoDadosDTO { CodigoPreco = dados.CodigoPreco, PrecoVenda = dados.PrecoVenda, Unidade = dados.Unidade }
-    };
+        private readonly BdAulaBackendContext _context;
 
-    [HttpGet]
-    public async Task<ActionResult<List<ProdutoRespostaDTO>>> GetProdutos()
-    {
-        var itens = await _itens.Consulta().Where(i => i.Produto != null).OrderBy(i => i.Iditem).ToListAsync();
-        return Ok(itens.Select(i => ApiMapeamento.Produto(i.Produto!)).ToList());
+        public ProdutoItemController(BdAulaBackendContext context)
+        {
+            _context = context;
+        }
+
+        // LISTAR TODOS OS PRODUTOS COM CATEGORIA E ESTOQUE
+        [HttpGet]
+        public async Task<IActionResult> GetProdutos()
+        {
+            var produtos = await _context.Produtos
+                .Include(p => p.IditemNavigation)
+                    .ThenInclude(i => i.IdcategoriaNavigation)
+                .Include(p => p.Estoque)
+                .ToListAsync();
+
+            return Ok(produtos);
+        }
+
+        // BUSCAR UM PRODUTO PELO ID
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProduto(int id)
+        {
+            var produto = await _context.Produtos
+                .Include(p => p.IditemNavigation)
+                    .ThenInclude(i => i.IdcategoriaNavigation)
+                .Include(p => p.Estoque)
+                .FirstOrDefaultAsync(p => p.Iditem == id);
+
+            if (produto == null)
+            {
+                return NotFound(new { mensagem = "PRODUTO NÃO LOCALIZADO!" });
+            }
+
+            return Ok(produto);
+        }
+
+        // INSERIR UM PRODUTO NAS TABELAS ITEM E PRODUTO
+        [HttpPost]
+        public async Task<IActionResult> PostProduto(ProdutoDTO dados)
+        {
+            if (string.IsNullOrWhiteSpace(dados.Item) || dados.IdCategoria <= 0)
+            {
+                return BadRequest(new { mensagem = "INFORME O NOME DO PRODUTO E SUA CATEGORIA!" });
+            }
+
+            if (dados.Preco < 0 || dados.PrecoVenda < 0)
+            {
+                return BadRequest(new { mensagem = "OS PREÇOS NÃO PODEM SER NEGATIVOS!" });
+            }
+
+            // Este controller é para itens do tipo P (produto).
+            if (!string.IsNullOrWhiteSpace(dados.TipoItem) && dados.TipoItem != "P")
+            {
+                return BadRequest(new { mensagem = "PARA CADASTRAR SERVIÇOS, USE O ENDPOINT API/ITENS." });
+            }
+
+            if (!await _context.Categoria.AnyAsync(c => c.Idcategoria == dados.IdCategoria))
+            {
+                return BadRequest(new { mensagem = "A CATEGORIA INFORMADA NÃO EXISTE!" });
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+             
+                var item = new Item
+                {
+                    Idcategoria = dados.IdCategoria,
+                    Item1 = dados.Item ?? "",
+                    DescricaoItem = dados.DescricaoItem ?? "",
+                    Preco = (decimal)dados.Preco,
+                    TipoItem = "P",
+                    AtivoProdutoServico = dados.AtivoProdutoServico ?? "S"
+                };
+
+                _context.Items.Add(item);
+                await _context.SaveChangesAsync();
+
+              
+                var produto = new Produto
+                {
+                    Iditem = item.Iditem,
+                    CodigoPreco = dados.CodigoPreco,
+                    PrecoVenda = dados.PrecoVenda,
+                    Unidade = dados.Unidade ?? "UN"
+                };
+
+                _context.Produtos.Add(produto);
+                await _context.SaveChangesAsync();
+
+             
+                await transaction.CommitAsync();
+
+                var produtoCadastrado = await _context.Produtos
+                    .Include(p => p.IditemNavigation)
+                        .ThenInclude(i => i.IdcategoriaNavigation)
+                    .Include(p => p.Estoque)
+                    .FirstOrDefaultAsync(p => p.Iditem == produto.Iditem);
+
+                return CreatedAtAction(
+                    nameof(GetProduto),
+                    new { id = produto.Iditem },
+                    (produtoCadastrado)
+                );
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new
+                {
+                    mensagem = "ERRO AO CADASTRAR PRODUTO!",
+                    erro = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+        }
+
+        // ALTERAR OS DADOS DO PRODUTO E DO ITEM
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutProduto(int id, ProdutoDTO dados)
+        {
+            var produto = await _context.Produtos
+                .Include(p => p.IditemNavigation)
+                .FirstOrDefaultAsync(p => p.Iditem == id);
+
+            if (produto == null)
+            {
+                return NotFound(new { mensagem = "PRODUTO NÃO LOCALIZADO!" });
+            }
+
+            if (dados.IdCategoria <= 0 || string.IsNullOrWhiteSpace(dados.Item))
+            {
+                return BadRequest(new { mensagem = "INFORME O NOME DO PRODUTO E A CATEGORIA!" });
+            }
+
+            if (!await _context.Categoria.AnyAsync(c => c.Idcategoria == dados.IdCategoria))
+            {
+                return BadRequest(new { mensagem = "A CATEGORIA INFORMADA NÃO EXISTE!" });
+            }
+
+            if (dados.Preco < 0 || dados.PrecoVenda < 0)
+            {
+                return BadRequest(new { mensagem = "OS PREÇOS NÃO PODEM SER NEGATIVOS!" });
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // DADOS DA TABELA PRODUTO
+                produto.CodigoPreco = dados.CodigoPreco;
+                produto.PrecoVenda = dados.PrecoVenda;
+                produto.Unidade = dados.Unidade ?? "UN";
+
+                // DADOS DA TABELA ITEM
+                produto.IditemNavigation.Idcategoria = dados.IdCategoria;
+                produto.IditemNavigation.Item1 = dados.Item;
+                produto.IditemNavigation.DescricaoItem = dados.DescricaoItem ?? "";
+                produto.IditemNavigation.Preco = (decimal)dados.Preco;
+                produto.IditemNavigation.TipoItem = "P";
+                produto.IditemNavigation.AtivoProdutoServico = dados.AtivoProdutoServico ?? "S";
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new
+                {
+                    mensagem = "ERRO AO ALTERAR PRODUTO!",
+                    erro = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+        }
+
+        // EXCLUIR UM PRODUTO. OS REGISTROS RELACIONADOS PRECISAM SER RESPEITADOS.
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduto(int id)
+        {
+            var produto = await _context.Produtos
+                .Include(p => p.IditemNavigation)
+                .Include(p => p.Estoque)
+                .FirstOrDefaultAsync(p => p.Iditem == id);
+
+            if (produto == null)
+            {
+                return NotFound(new { mensagem = "PRODUTO NÃO LOCALIZADO!" });
+            }
+
+            if (await _context.EntradaProdutos.AnyAsync(e => e.Iditem == id) ||
+                await _context.Atendimentoitems.AnyAsync(a => a.Iditem == id))
+            {
+                return Conflict(new { mensagem = "O PRODUTO POSSUI ENTRADAS OU ATENDIMENTOS RELACIONADOS E NÃO PODE SER EXCLUÍDO!" });
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // O ESTOQUE É EXCLUÍDO ANTES DO PRODUTO POR CAUSA DA CHAVE ESTRANGEIRA.
+                if (produto.Estoque != null)
+                {
+                    _context.Estoques.Remove(produto.Estoque);
+                    await _context.SaveChangesAsync();
+                }
+
+                _context.Produtos.Remove(produto);
+                await _context.SaveChangesAsync();
+
+                _context.Items.Remove(produto.IditemNavigation);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new
+                {
+                    mensagem = "ERRO AO EXCLUIR PRODUTO!",
+                    erro = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+        }
+
+     
+        }
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<ProdutoRespostaDTO>> GetProduto(int id)
-    {
-        var item = await _itens.ObterAsync(id);
-        if (item.Produto == null) throw new RegraNegocioException(404, "Produto não localizado.");
-        return Ok(ApiMapeamento.Produto(item.Produto));
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<ProdutoRespostaDTO>> PostProduto(ProdutoDTO dados)
-    {
-        await using var transacao = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
-        var item = await _itens.CriarAsync(Converter(dados));
-        await transacao.CommitAsync();
-        return CreatedAtAction(nameof(GetProduto), new { id = item.Iditem }, ApiMapeamento.Produto(item.Produto!));
-    }
-
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> PutProduto(int id, ProdutoDTO dados)
-    {
-        await using var transacao = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
-        await _itens.AtualizarAsync(id, Converter(dados), exigirProduto: true);
-        await transacao.CommitAsync();
-        return NoContent();
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteProduto(int id)
-    {
-        await using var transacao = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
-        await _itens.ExcluirAsync(id, exigirProduto: true);
-        await transacao.CommitAsync();
-        return NoContent();
-    }
-}
