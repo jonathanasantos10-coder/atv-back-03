@@ -217,7 +217,6 @@ namespace AplicacaoBackAula.Controllers
             }
         }
 
-        // EXCLUIR PESSOA E ENDEREÇOS, SE NÃO HOUVER OUTROS VÍNCULOS
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePessoaEndereco(int id)
         {

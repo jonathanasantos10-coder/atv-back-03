@@ -228,7 +228,6 @@ namespace AplicacaoBackAula.Controllers
             }
         }
 
-        // EXCLUIR O VÍNCULO DE FUNCIONÁRIO. A PESSOA FICA CADASTRADA.
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFuncionario(int id)
         {

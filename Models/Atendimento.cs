@@ -13,7 +13,7 @@ public partial class Atendimento
 
     public string? StatusAtendimento { get; set; }
 
-    public virtual ICollection<Atendimentoitem> Atendimentoitems { get; set; } = new List<Atendimentoitem>();
+    public virtual List<Atendimentoitem> Atendimentoitems { get; set; } = new List<Atendimentoitem>();
 
     public virtual Pessoa IdpessoaNavigation { get; set; } = null!;
 }

@@ -17,24 +17,109 @@ namespace AplicacaoBackAula.Controllers
             _context = context;
         }
 
-      
+
+
         [HttpGet]
         public async Task<IActionResult> GetAtendimentos()
         {
             var atendimentos = await _context.Atendimentos
-                .Include(a => a.IdpessoaNavigation)
+                .OrderBy(a => a.Idatendimento)
+                .Select(a => new AtendimentoDTO
+                {
+                    IdAtendimento = a.Idatendimento,
+                    IdPessoa = a.Idpessoa,
+                    NomePessoa = a.IdpessoaNavigation.Nome,
+                    DataAtendimento = a.DataAtendimento,
+                    StatusAtendimento = a.StatusAtendimento,
+
+                    Itens = a.Atendimentoitems.Select(ai =>
+                        new AtendimentoItemDTO
+                        {
+                            IdAtendimento = ai.Idatendimento,
+                            IdItem = ai.Iditem,
+                            Item = ai.IditemNavigation.DescricaoItem,
+                            NomeFuncionario = ai.IdfuncionarioNavigation.IdpessoaNavigation.Nome,
+                            IdFuncionario = ai.Idfuncionario,
+                            Cargo = ai.IdfuncionarioNavigation.Cargo,
+                            QuantidadeItens = ai.QuantidadeItem,
+                            ValorUnitarioEntrada = (decimal)ai.ValorunitarioEntrada
+                        }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(atendimentos);
+        }
+     
+
+        /*
+         * esse get funciona. 
+        [HttpGet]
+          public async Task<IActionResult> GetAtendimentos()
+          {
+
+              var atendimentos = await _context.Atendimentos
+                 .Include(a => a.Atendimentoitems)
+                 .ToListAsync();
+
+              return Ok(atendimentos);
+          }
+        */
+
+
+        /*
+        esse get funciona, porém é muito grande.
+        [HttpGet]
+        public async Task<IActionResult> GetAtendimentos()
+        {
+            var atendimentos = await _context.Atendimentos
+                //.Include(a => a.IdpessoaNavigation)
+                .Include(a => a.Idpessoa)
                 .Include(a => a.Atendimentoitems)
-                    .ThenInclude(ai => ai.IditemNavigation)
+                    .ThenInclude(ai => ai.Iditem)
                 .Include(a => a.Atendimentoitems)
-                    .ThenInclude(ai => ai.IdfuncionarioNavigation)
-                        .ThenInclude(f => f.IdpessoaNavigation)
+                    .ThenInclude(ai => ai.Idfuncionario)
                 .OrderBy(a => a.Idatendimento)
                 .ToListAsync();
 
             return Ok(atendimentos);
         }
+        */
 
-        
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetAtendimento(int id)
+        {
+            var atendimentos = await _context.Atendimentos
+                .OrderBy(a => a.Idatendimento)
+                .Select(a => new AtendimentoDTO
+                {
+                    IdAtendimento = a.Idatendimento,
+                    IdPessoa = a.Idpessoa,
+                    NomePessoa = a.IdpessoaNavigation.Nome,
+                    DataAtendimento = a.DataAtendimento,
+                    StatusAtendimento = a.StatusAtendimento,
+
+                    Itens = a.Atendimentoitems.Select(ai =>
+                        new AtendimentoItemDTO
+                        {
+                            IdAtendimento = ai.Idatendimento,
+                            IdItem = ai.Iditem,
+                            Item = ai.IditemNavigation.DescricaoItem,
+                            NomeFuncionario = ai.IdfuncionarioNavigation.IdpessoaNavigation.Nome,
+                            IdFuncionario = ai.Idfuncionario,
+                            Cargo = ai.IdfuncionarioNavigation.Cargo,
+                            QuantidadeItens = ai.QuantidadeItem,
+                            ValorUnitarioEntrada = (decimal)ai.ValorunitarioEntrada
+                        }).ToList()
+                })
+                .FirstOrDefaultAsync(a => a.IdAtendimento == id);
+               
+            return Ok(atendimentos);
+        }
+
+
+
+
+        /* 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetAtendimento(int id)
         {
@@ -54,10 +139,10 @@ namespace AplicacaoBackAula.Controllers
 
             return Ok(atendimento);
         }
+        */
 
-        
         [HttpPost]
-        public async Task<IActionResult> PostAtendimento(AtendimentoDTO dados)
+        public async Task<IActionResult> PostAtendimento(AtendimentoPost dados)
         {
             if (dados.IdPessoa <= 0 || !await _context.Pessoas.AnyAsync(p => p.Idpessoa == dados.IdPessoa))
             {
@@ -87,26 +172,45 @@ namespace AplicacaoBackAula.Controllers
                 {
                     Idpessoa = dados.IdPessoa,
                     DataAtendimento = dados.DataAtendimento,
-                    StatusAtendimento = dados.StatusAtendimento
+                    StatusAtendimento = dados.StatusAtendimento,
+
+                    Atendimentoitems = dados.Itens.Select(item => new Atendimentoitem
+                    {
+                        Iditem = item.IdItem,
+                        Idfuncionario = item.IdFuncionario,
+                        QuantidadeItem = item.QuantidadeItens,
+                        ValorunitarioEntrada = item.ValorUnitarioEntrada
+                    }).ToList()
                 };
 
                 _context.Atendimentos.Add(atendimento);
                 await _context.SaveChangesAsync();
 
-                foreach (var itemDTO in dados.Itens)
-                {
-                    var itemAtendimento = new Atendimentoitem
-                    {
-                        Idatendimento = atendimento.Idatendimento,
-                        Iditem = itemDTO.IdItem,
-                        Idfuncionario = itemDTO.IdFuncionario,
-                        QuantidadeItem = itemDTO.QuantidadeItens,
-                        ValorunitarioEntrada = itemDTO.ValorUnitarioEntrada
-                    };
 
-                    _context.Atendimentoitems.Add(itemAtendimento);
-                }
+                /*  var atendimento = new Atendimento
+                  {
+                      Idpessoa = dados.IdPessoa,
+                      DataAtendimento = dados.DataAtendimento,
+                      StatusAtendimento = dados.StatusAtendimento
+                  };
 
+                  _context.Atendimentos.Add(atendimento);
+                  await _context.SaveChangesAsync();
+                  /*
+                  foreach (var itemDTO in dados.Itens)
+                  {
+                      var itemAtendimento = new Atendimentoitem
+                      {
+                          Idatendimento = atendimento.Idatendimento,
+                          Iditem = itemDTO.IdItem,
+                          Idfuncionario = itemDTO.IdFuncionario,
+                          QuantidadeItem = itemDTO.QuantidadeItens,
+                          ValorunitarioEntrada = itemDTO.ValorUnitarioEntrada
+                      };
+
+                      _context.Atendimentoitems.Add(itemAtendimento);
+                  }
+                  */
                 await _context.SaveChangesAsync();
 
               
@@ -137,7 +241,7 @@ namespace AplicacaoBackAula.Controllers
 
      
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAtendimento(int id, AtendimentoDTO dados)
+        public async Task<IActionResult> PutAtendimento(int id, AtendimentoPost dados)
         {
             var atendimento = await _context.Atendimentos
                 .Include(a => a.Atendimentoitems)
@@ -326,7 +430,7 @@ namespace AplicacaoBackAula.Controllers
 
        
         [HttpPost("{id}/itens")]
-        public async Task<IActionResult> PostItemAtendimento(int id, AtendimentoItemDTO dados)
+        public async Task<IActionResult> PostItemAtendimento(int id, AtendimentoItemPOST dados)
         {
             var atendimento = await _context.Atendimentos.FirstOrDefaultAsync(a => a.Idatendimento == id);
             if (atendimento == null)
@@ -373,9 +477,8 @@ namespace AplicacaoBackAula.Controllers
             }
         }
 
-        // ALTERAR QUANTIDADE, VALOR OU FUNCIONÁRIO DE UM ITEM DO ATENDIMENTO
         [HttpPut("{id}/itens/{idItem}")]
-        public async Task<IActionResult> PutItemAtendimento(int id, int idItem, AtendimentoItemDTO dados)
+        public async Task<IActionResult> PutItemAtendimento(int id, int idItem, AtendimentoItemPOST dados)
         {
             if (idItem != dados.IdItem)
             {
@@ -482,7 +585,7 @@ namespace AplicacaoBackAula.Controllers
         }
 
         
-        private async Task<string?> ConferirItemAtendimento(AtendimentoItemDTO dados)
+        private async Task<string?> ConferirItemAtendimento(AtendimentoItemPOST dados)
         {
             if (dados.IdItem <= 0 || dados.IdFuncionario <= 0)
             {

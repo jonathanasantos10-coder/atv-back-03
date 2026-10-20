@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AplicacaoBackAula.Controllers
 {
-    // Controller para cadastrar produtos. O produto usa duas tabelas: item e produto.
+  
     [Route("api/[controller]")]
     [ApiController]
     public class ProdutoItemController : ControllerBase
@@ -17,7 +17,7 @@ namespace AplicacaoBackAula.Controllers
             _context = context;
         }
 
-        // LISTAR TODOS OS PRODUTOS COM CATEGORIA E ESTOQUE
+        
         [HttpGet]
         public async Task<IActionResult> GetProdutos()
         {
@@ -30,7 +30,7 @@ namespace AplicacaoBackAula.Controllers
             return Ok(produtos);
         }
 
-        // BUSCAR UM PRODUTO PELO ID
+       
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProduto(int id)
         {
@@ -48,7 +48,7 @@ namespace AplicacaoBackAula.Controllers
             return Ok(produto);
         }
 
-        // INSERIR UM PRODUTO NAS TABELAS ITEM E PRODUTO
+     
         [HttpPost]
         public async Task<IActionResult> PostProduto(ProdutoDTO dados)
         {
@@ -62,7 +62,7 @@ namespace AplicacaoBackAula.Controllers
                 return BadRequest(new { mensagem = "OS PREÇOS NÃO PODEM SER NEGATIVOS!" });
             }
 
-            // Este controller é para itens do tipo P (produto).
+            
             if (!string.IsNullOrWhiteSpace(dados.TipoItem) && dados.TipoItem != "P")
             {
                 return BadRequest(new { mensagem = "PARA CADASTRAR SERVIÇOS, USE O ENDPOINT API/ITENS." });
@@ -77,7 +77,7 @@ namespace AplicacaoBackAula.Controllers
 
             try
             {
-             
+
                 var item = new Item
                 {
                     Idcategoria = dados.IdCategoria,
@@ -103,7 +103,7 @@ namespace AplicacaoBackAula.Controllers
                 _context.Produtos.Add(produto);
                 await _context.SaveChangesAsync();
 
-             
+           
                 await transaction.CommitAsync();
 
                 var produtoCadastrado = await _context.Produtos
@@ -115,7 +115,7 @@ namespace AplicacaoBackAula.Controllers
                 return CreatedAtAction(
                     nameof(GetProduto),
                     new { id = produto.Iditem },
-                    (produtoCadastrado)
+                    (produtoCadastrado!)
                 );
             }
             catch (Exception ex)
@@ -129,7 +129,7 @@ namespace AplicacaoBackAula.Controllers
             }
         }
 
-        // ALTERAR OS DADOS DO PRODUTO E DO ITEM
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProduto(int id, ProdutoDTO dados)
         {
@@ -161,12 +161,11 @@ namespace AplicacaoBackAula.Controllers
 
             try
             {
-                // DADOS DA TABELA PRODUTO
+                
                 produto.CodigoPreco = dados.CodigoPreco;
                 produto.PrecoVenda = dados.PrecoVenda;
                 produto.Unidade = dados.Unidade ?? "UN";
 
-                // DADOS DA TABELA ITEM
                 produto.IditemNavigation.Idcategoria = dados.IdCategoria;
                 produto.IditemNavigation.Item1 = dados.Item;
                 produto.IditemNavigation.DescricaoItem = dados.DescricaoItem ?? "";
@@ -189,7 +188,7 @@ namespace AplicacaoBackAula.Controllers
             }
         }
 
-        // EXCLUIR UM PRODUTO. OS REGISTROS RELACIONADOS PRECISAM SER RESPEITADOS.
+      
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduto(int id)
         {
@@ -213,7 +212,7 @@ namespace AplicacaoBackAula.Controllers
 
             try
             {
-                // O ESTOQUE É EXCLUÍDO ANTES DO PRODUTO POR CAUSA DA CHAVE ESTRANGEIRA.
+                
                 if (produto.Estoque != null)
                 {
                     _context.Estoques.Remove(produto.Estoque);

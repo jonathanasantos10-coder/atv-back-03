@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AplicacaoBackAula.Controllers
 {
-    // Controller para controlar as entradas de produtos no estoque.
+ 
     [Route("api/[controller]")]
     [ApiController]
     public class EntradaProdutoController : ControllerBase
@@ -17,7 +17,7 @@ namespace AplicacaoBackAula.Controllers
             _context = context;
         }
 
-        // LISTAR TODAS AS ENTRADAS
+      
         [HttpGet]
         public async Task<IActionResult> GetEntradasProduto()
         {
@@ -30,7 +30,7 @@ namespace AplicacaoBackAula.Controllers
             return Ok(entradas);
         }
 
-        // BUSCAR UMA ENTRADA PELO ID
+  
         [HttpGet("{id}")]
         public async Task<IActionResult> GetEntradaProduto(int id)
         {
@@ -47,7 +47,7 @@ namespace AplicacaoBackAula.Controllers
             return Ok(entrada);
         }
 
-        // CADASTRAR UMA ENTRADA
+       
         [HttpPost]
         public async Task<IActionResult> PostEntradaProduto(EntradaProdutoDTO dados)
         {
